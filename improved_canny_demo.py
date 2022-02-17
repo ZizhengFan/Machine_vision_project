@@ -206,14 +206,15 @@ def feature_detection(closing_image):
 
 # ---------------------------------------------------------This is a split line-
 if __name__ == "__main__":
-    path = "road_defection_linear.png"
+    
+    path = "crack-detection-opencv-master/Input-Set/my_road_defection_0.png"
     src = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
     print("The shape of original image is: {}".format(src.shape))
 
-    plt.figure(0)
-    histogram_plotting(src)
+    # plt.figure(0)
+    # histogram_plotting(src)
 
-    edge = canny(src, 0.15, 0.4)
+    edge = canny(src, 0.1, 0.3)
 
     closing = morphology_operation(edge, morph_size=5)
 
