@@ -1,3 +1,7 @@
+
+
+# we should add new canny here
+# ---------------------------------------------------------This is a split line-
 # importing necessary libraries
 import numpy as np
 import cv2
