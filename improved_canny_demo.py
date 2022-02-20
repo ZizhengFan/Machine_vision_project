@@ -1,11 +1,10 @@
-from contextlib import closing
 import pywt
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 from scipy.ndimage.filters import convolve
 
-# ---------------------------------------------------------This is a split line--
+# ------------------------------------------------------This is a split line----
 
 
 def histogram_plotting(gray_image):
@@ -199,15 +198,16 @@ def morphology_operation(edge_image, morph_size=5):
 def feature_detection(closing_image):
     orb = cv2.ORB_create(nfeatures=1500)
     keypoints, descriptors = orb.detectAndCompute(closing_image, None)
+    print(type(keypoints))
     featuredImg = cv2.drawKeypoints(closing_image, keypoints, None)
 
     return featuredImg
 
 
-# ---------------------------------------------------------This is a split line-
+# ------------------------------------------------------This is a split line----
 if __name__ == "__main__":
-    
-    path = "crack-detection-opencv-master/Input-Set/my_road_defection_0.png"
+
+    path = "crack-detection-opencv-master/Input-Set/my_road_defection_1.png"
     src = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
     print("The shape of original image is: {}".format(src.shape))
 
