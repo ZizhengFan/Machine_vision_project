@@ -35,6 +35,7 @@ def gaussian_filter(image, size=5, sigma=1.0):
     gaussian_kernel = normal * np.exp(-((x**2 + y**2)/(2 * sigma**2)))
 
     blured_image = convolve(image, gaussian_kernel)
+    blured_image = cv2.medianBlur(blured_image, ksize=7)
 
     return blured_image
 
@@ -196,29 +197,32 @@ def morphology_operation(edge_image, morph_size=5):
 
 
 def feature_detection(closing_image):
-    orb = cv2.ORB_create(nfeatures=1500)
-    keypoints, descriptors = orb.detectAndCompute(closing_image, None)
-    print(type(keypoints))
+    feature_operator = cv2.ORB_create(nfeatures=500)
+    # feature_operator = cv2.SIFT_create(nfeatures=1500)
+    
+    keypoints, _ = feature_operator.detectAndCompute(closing_image, None)
     featuredImg = cv2.drawKeypoints(closing_image, keypoints, None)
 
-    return featuredImg
+    print("The number of keypoints is:", len(keypoints))
+       
+    kps=np.int32([kp.pt for kp in keypoints])
+    # print(kps)
+    
+    return featuredImg, kps
 
 
 # ------------------------------------------------------This is a split line----
 if __name__ == "__main__":
 
-    path = "crack-detection-opencv-master/Input-Set/my_road_defection_1.png"
+    path = "crack-detection-opencv-master/Input-Set/RoadCrack_05.jpg"
     src = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-    print("The shape of original image is: {}".format(src.shape))
-
-    # plt.figure(0)
-    # histogram_plotting(src)
+    print("The size of this picture is: ", src.shape)
 
     edge = canny(src, 0.1, 0.3)
 
     closing = morphology_operation(edge, morph_size=5)
 
-    feature = feature_detection(closing)
+    feature, kps = feature_detection(closing)
 
     plt.subplot(2, 2, 1)
     plt.imshow(src, cmap='gray')
@@ -238,3 +242,8 @@ if __name__ == "__main__":
 
     plt.subplots_adjust(wspace=0.5, hspace=0.5)
     plt.show()
+
+    plt.figure(2)
+    plt.plot(kps[:, 0], kps[:, 1], 'o')
+    plt.show()
+    
