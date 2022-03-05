@@ -4,9 +4,9 @@ from matplotlib import pyplot as plt
 import warnings
 warnings.filterwarnings("ignore")
 
-imag = cv2.imread('./crack-detection-opencv-master/Input-Set/Cracked_09.jpg',0)
+imag = cv2.imread('./crack-detection-opencv-master/Input-Set/Cracked_03.jpg',0)
 blurred = cv2.GaussianBlur(imag,(5,5),0)
-# blurred = cv2.medianBlur(blurred, 5)
+blurred = cv2.medianBlur(blurred, 5)
 
 plt.imshow(blurred, 'gray')
 plt.title('Input')
@@ -56,15 +56,18 @@ for i in range(1,256):
     if fn < mini:
         mini = fn
         thresh = i
+    print("threshold Iterating:", thresh)
 
 # find otsu's threshold value with OpenCV function
 ret, binarized = cv2.threshold(blurred,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+_, native_output = cv2.threshold(blurred,thresh,255,cv2.THRESH_BINARY)
 
-# Save the output image
-cv2.imwrite("lenna_thresh.jpg", binarized)
-
+plt.subplot(1, 2, 1)
+plt.imshow(native_output, 'gray')
+plt.title('Our Otsu')
+plt.subplot(1, 2, 2)
 plt.imshow(binarized, 'gray')
-plt.title('Output')
+plt.title('cv2 Otsu')
 plt.show()
 
 print ("Threshold gotten by native implementation:",thresh)
