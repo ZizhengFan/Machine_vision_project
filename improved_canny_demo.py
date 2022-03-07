@@ -199,22 +199,22 @@ def morphology_operation(edge_image, morph_size=5):
 def feature_detection(closing_image):
     feature_operator = cv2.ORB_create(nfeatures=500)
     # feature_operator = cv2.SIFT_create(nfeatures=1500)
-    
+
     keypoints, _ = feature_operator.detectAndCompute(closing_image, None)
     featuredImg = cv2.drawKeypoints(closing_image, keypoints, None)
 
     print("The number of keypoints is:", len(keypoints))
-       
-    kps=np.int32([kp.pt for kp in keypoints])
+
+    kps = np.int32([kp.pt for kp in keypoints])
     # print(kps)
-    
+
     return featuredImg, kps
 
 
 # ------------------------------------------------------This is a split line----
 if __name__ == "__main__":
 
-    path = "crack-detection-opencv-master/Input-Set/RoadCrack_05.jpg"
+    path = "crack-detection-opencv-master/Input-Set/RoadCrack_03.jpg"
     src = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
     print("The size of this picture is: ", src.shape)
 
@@ -246,4 +246,3 @@ if __name__ == "__main__":
     plt.figure(2)
     plt.plot(kps[:, 0], kps[:, 1], 'o')
     plt.show()
-    
