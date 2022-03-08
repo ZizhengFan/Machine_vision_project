@@ -7,16 +7,16 @@ if __name__ == "__main__":
     # Read input image
     #img = cv2.imread("Input-Set/RoadCrack_02.jpg")
     img = cv2.imread(
-        "crack-detection-opencv-master/Input-Set/RoadCrack_03.jpg")
+        "crack-detection-opencv-master/Input-Set/RoadCrack_04.jpg")
     #img = cv2.imread("Input-Set/my_road_defection_1.png")
 
     # Convert into gray scale
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     # Logarithmic transform
-    #img_log = (np.log(gray+1)/(np.log(1+np.max(gray))))*255
-    #img_log = np.array(img_log,dtype=np.uint8)
-    img_log = gray
+    img_log = (np.log(gray+1)/(np.log(1+np.max(gray))))*255
+    img_log = np.array(img_log,dtype=np.uint8)
+    # img_log = gray
 
     # Calculate histogram
     plt.figure(1)
@@ -92,7 +92,8 @@ if __name__ == "__main__":
             thres = tk[i+1]
             break
 
-    print("Iterative thresholds:", tk)
+    # print("Iterative thresholds:", tk)
+    print("Iterative thresholds:", thres)
 
     _, iterative_thres = cv2.threshold(
         improved_otsu, thres, 255, cv2.THRESH_BINARY)
@@ -107,7 +108,8 @@ if __name__ == "__main__":
     plt.show()
 
     kernel = np.ones((5, 5), np.uint8)
-    erosion = cv2.erode(iterative_thres, kernel, iterations=1)
+    # erosion = cv2.erode(iterative_thres, kernel, iterations=1)
+    erosion = cv2.morphologyEx(iterative_thres, cv2.MORPH_CLOSE, kernel)
 
     # Feature detecting
     orb = cv2.ORB_create(nfeatures=1500)

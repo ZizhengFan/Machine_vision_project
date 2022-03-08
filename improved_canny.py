@@ -18,7 +18,7 @@ def histogram_statistic():
     pass
 
 
-def gaussian_filter(image, size=5, sigma=1.0):
+def gaussian_filter(image, size=5, sigma=1.0) -> np.ndarray:
     """按参数生成高斯卷积核 
 
     Args:
@@ -42,7 +42,17 @@ def gaussian_filter(image, size=5, sigma=1.0):
 # 小波变换滤波（根据直方图来搞效果可能会更好）
 
 
-def wavelet_filter(blured_image, th_wavelet=100, wavelet='haar'):
+def wavelet_filter(blured_image, th_wavelet=100, wavelet='haar') -> np.array:
+    """wavelet filter
+
+    Args:
+        blured_image (np.array): gaussian or median filted image
+        th_wavelet (int, optional): the thresold to filter noise. Defaults to 100.
+        wavelet (str, optional): define which type of wavelet you use. Defaults to 'haar'.
+
+    Returns:
+        np.array: return a furtured filtered image
+    """
     coeffs2 = pywt.dwt2(blured_image, wavelet)
     LL, (LH, HL, HH) = coeffs2
 
@@ -59,10 +69,17 @@ def wavelet_filter(blured_image, th_wavelet=100, wavelet='haar'):
 
     return denoised_image
 
-# 图像的对数变换
 
 
 def log_operation(denoised_image):
+    """The logging operation which is used to adjust image's histogram.
+
+    Args:
+        denoised_image (np.array): denoised image
+
+    Returns:
+        np.array: histogram adjusted image
+    """
     img_log = (np.log(denoised_image+1) /
                (np.log(1+np.max(denoised_image)))) * 255
     log_image = np.array(img_log, dtype=np.uint8)
@@ -73,6 +90,15 @@ def log_operation(denoised_image):
 
 
 def sobel_gradient(log_image):
+    """Two Sobel operators are used to detect the gradient.
+
+    Args:
+        log_image (np.array): histogram adjusted image
+
+    Returns:
+        np.array: gradient image of x
+        np.array: gradient image of y
+    """
     sx = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
     sy = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
     sobelx = convolve(np.float32(log_image), sx)
@@ -80,25 +106,44 @@ def sobel_gradient(log_image):
 
     return sobelx, sobely
 
-# 计算图像梯度幅值
 
+def magnitude(sobelx, sobely, threshold_grad = 10):
+    """From the gradient x and y, calcualte the magnitude and phase.
 
-def magnitude(sobelx, sobely):
+    Args:
+        sobelx (np.array): gradient image of x
+        sobely (np.array): gradient image of y
+        threshold_grad (int, optional): threshold of gradient. Defaults to 10.
+    Returns:
+        np.array: the magitude of the gradient
+        np.array: the phase of the gradient
+        
+    """
     grad = np.sqrt(sobelx**2 + sobely**2)
     phase = cv2.phase(sobelx, sobely, 1)
-    phase = (180/np.pi)*phase  # 将角度转换为弧度
-    x, y = np.where(grad < 10)
+    # convert to degrees
+    phase = (180/np.pi)*phase  
+    # for those magnitude of gradient lower than 10, we consider it as zero
+    x, y = np.where(grad < threshold_grad) 
     phase[x, y] = 0
     grad[x, y] = 0
 
     return grad, phase
 
-# 非极大值抑制
-
 
 def non_max_supression(grad, phase):
+    """_summary_
+
+    Args:
+        grad (_type_): _description_
+        phase (_type_): _description_
+
+    Returns:
+        np.array: from new phase, generate new gradient image
+    """
     r, c = grad.shape
-    new = np.zeros((r, c))
+    # create a new matrix for storing the new phase
+    newphase = np.zeros((r, c))
     # 储存过程值
     x1, y1 = np.where(((phase > 0) & (phase <= 22.5)) |
                       ((phase > 157.5) & (phase <= 202.5)) |
@@ -114,10 +159,10 @@ def non_max_supression(grad, phase):
                       ((phase > 292.5) & (phase <= 337.5)))
 
     # 这个new就是新的phase存储的矩阵
-    new[x1, y1] = 0
-    new[x2, y2] = 45
-    new[x3, y3] = 90
-    new[x4, y4] = 135
+    newphase[x1, y1] = 0
+    newphase[x2, y2] = 45
+    newphase[x3, y3] = 90
+    newphase[x4, y4] = 135
 
     # 设置一个新矩阵newgrad，待会用来根据grad和new生成新的grad
     newgrad = np.zeros((r, c))
@@ -125,19 +170,19 @@ def non_max_supression(grad, phase):
     # 非极大值抑制
     for i in range(2, r-2):
         for j in range(2, c-2):
-            if new[i, j] == 90:
+            if newphase[i, j] == 90:
                 if((grad[i+1, j] < grad[i, j]) & (grad[i-1, j] < grad[i, j])):
                     newgrad[i, j] = 1
 
-            elif new[i, j] == 45:
+            elif newphase[i, j] == 45:
                 if((grad[i+1, j-1] < grad[i, j]) & (grad[i-1, j+1] < grad[i, j])):
                     newgrad[i, j] = 1
 
-            elif new[i, j] == 0:
+            elif newphase[i, j] == 0:
                 if((grad[i, j+1] < grad[i, j]) & (grad[i, j-1] < grad[i, j])):
                     newgrad[i, j] = 1
 
-            elif new[i, j] == 135:
+            elif newphase[i, j] == 135:
                 if((grad[i+1, j+1] < grad[i, j]) & (grad[i-1, j-1] < grad[i, j])):
                     newgrad[i, j] = 1
     newgrad = np.multiply(newgrad, grad)
@@ -146,6 +191,16 @@ def non_max_supression(grad, phase):
 
 
 def double_thresholding(newgrad, t_low=0.075, t_high=0.175):
+    """_summary_
+
+    Args:
+        newgrad (_type_): _description_
+        t_low (float, optional): _description_. Defaults to 0.075.
+        t_high (float, optional): _description_. Defaults to 0.175.
+
+    Returns:
+        _type_: _description_
+    """
     # Automating the thresholding selecting process
     r, c = newgrad.shape
     tl = t_low * np.amax(newgrad)
@@ -214,7 +269,7 @@ def feature_detection(closing_image):
 # ------------------------------------------------------This is a split line----
 if __name__ == "__main__":
 
-    path = "crack-detection-opencv-master/Input-Set/RoadCrack_03.jpg"
+    path = "crack-detection-opencv-master/Input-Set/RoadCrack_04.jpg"
     src = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
     print("The size of this picture is: ", src.shape)
 
