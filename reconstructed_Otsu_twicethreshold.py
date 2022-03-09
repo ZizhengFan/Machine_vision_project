@@ -8,14 +8,14 @@ warnings.filterwarnings("ignore")
 # ------------------------------------------------------This is a split line----
 
 
-def image_read(path) -> np.ndarray:
+def image_read(path: str) -> np.ndarray:
     img = cv2.imread(path)
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     return gray_img
 
 
-def log_transform(gray_img) -> np.ndarray:
+def log_transform(gray_img: np.ndarray) -> np.ndarray:
     """The logging operation which is used to adjust image's histogram.
 
     Args:
@@ -33,7 +33,7 @@ def log_transform(gray_img) -> np.ndarray:
     return log_img
 
 
-def filter_noise(log_img, size=5, sigma=1.0) -> np.ndarray:
+def filter_noise(log_img: np.ndarray, size: int = 5, sigma: float = 1.0) -> np.ndarray:
     """按参数生成高斯卷积核 
 
     Args:
@@ -55,7 +55,8 @@ def filter_noise(log_img, size=5, sigma=1.0) -> np.ndarray:
     return blured_image
 
 
-def wavelet_filter(blured_image, th_wavelet=100, wavelet='haar') -> np.ndarray:
+def wavelet_filter(blured_image: np.ndarray,
+                   th_wavelet: int = 100, wavelet: str = 'haar') -> np.ndarray:
     """wavelet filter
 
     Args:
@@ -83,7 +84,7 @@ def wavelet_filter(blured_image, th_wavelet=100, wavelet='haar') -> np.ndarray:
     return denoised_img
 
 
-def normal_Otsu(denoised_img) -> np.ndarray:
+def normal_Otsu(denoised_img: np.ndarray) -> np.ndarray:
     histogram = cv2.calcHist([denoised_img.astype(np.uint8)], [
                              0], None, [256], [0, 256])
     h, w = denoised_img.shape
@@ -117,31 +118,39 @@ def normal_Otsu(denoised_img) -> np.ndarray:
     return thresh_Otsu
 
 
-def first_segmentation(denoised_img) -> np.ndarray:
+def first_segmentation(denoised_img: np.ndarray) -> np.ndarray:
     thresh_Otsu = normal_Otsu(denoised_img)
     mean = np.average(np.uint8(denoised_img.ravel()))
-    
+
     h, w = denoised_img.shape
+    temp_canvas = np.zeros((h, w))
+    
+    # for i in range(h):
+    #     for j in range(w):
+    #         if denoised_img[i][j] > thresh_Otsu:
+    #             denoised_img[i][j] = 0
+    
     for i in range(h):
         for j in range(w):
             if denoised_img[i][j] > thresh_Otsu:
-                denoised_img[i][j] = 0
+                temp_canvas[i][j] = 0
+            else:
+                temp_canvas[i][j] = denoised_img[i][j]
 
-    firstseg_img = denoised_img
-    hist_firstseg = cv2.calcHist([firstseg_img.astype(np.uint8)],
-                                 [0], None, [256], [0, 256])
+    # firstseg_img = denoised_img
+    firstseg_img = temp_canvas
 
-    return firstseg_img, hist_firstseg
+    return firstseg_img
 
 
-def iterative_segmentation(firstseg_img, weight=0.25) -> np.ndarray:
+def iterative_segmentation(firstseg_img: np.ndarray, weight: float = 0.225) -> np.ndarray:
     h, w = firstseg_img.shape
     firstseg_img = firstseg_img.astype(np.uint8)
     tmax = firstseg_img.max()
     tmin = firstseg_img.min()
     T0 = np.uint8(np.median(firstseg_img))
-    Tk = T0
-    print("the initial iterative threshold is: ", T0)
+    Tk = T0 * weight
+    print("the initial iterative threshold is: ", Tk)
 
     hist = cv2.calcHist([firstseg_img], [0], None, [256], [0, 256])
     hist_normalize = hist.ravel()/(h * w)
@@ -149,7 +158,7 @@ def iterative_segmentation(firstseg_img, weight=0.25) -> np.ndarray:
     Q = hist_normalize.cumsum()
     x_axis = np.arange(256)
 
-    for i in range(T0, 255):
+    for i in range(np.uint8(T0*weight), 255):
         p1, p2 = np.hsplit(hist_normalize, [i])
         q1, q2 = Q[i], Q[255] - Q[i]
         b1, b2 = np.hsplit(x_axis, [i])
@@ -190,7 +199,7 @@ def morphology_operation(secondseg_img, morph_size=5):
 
 def feature_detection(closing_img, nfeatures=500):
     feature_operator = cv2.ORB_create(nfeatures)
-    # feature_operator = cv2.SIFT_create(nfeatures=1500)
+    # feature_operator = cv2.SIFT_create(nfeatures=nfeatures)
 
     keypoints, _ = feature_operator.detectAndCompute(closing_img, None)
     featured_img = cv2.drawKeypoints(closing_img, keypoints, None)
@@ -203,23 +212,23 @@ def feature_detection(closing_img, nfeatures=500):
 
 # ------------------------------------------------------This is a split line----
 if __name__ == '__main__':
-    path = "crack-detection-opencv-master/Input-Set/RoadCrack_01.jpg"
+    path = "crack-detection-opencv-master/Input-Set/test4.png"
     gray_img = image_read(path)
     log_img = log_transform(gray_img)
     blured_image = filter_noise(log_img)
     denoised_img = wavelet_filter(blured_image)
     # first_thresh_Otsu = normal_Otsu(denoised_img)
-    firstseg_img, hist_firstseg = first_segmentation(denoised_img)
+    firstseg_img = first_segmentation(denoised_img)
     secondseg_img, second_thresh_Otsu = iterative_segmentation(firstseg_img)
     closing_img = morphology_operation(secondseg_img)
     featured_img, kps = feature_detection(closing_img)
-    
+
     ret, original_Otsu = cv2.threshold(denoised_img.astype(np.uint8),
-                                    0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                                       0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
     print(f"the opencv Otsu's threshold is {ret}")
 
 # ------------------------------------------------------This is a split line----
-    plt.figure(0)
+    plt.figure(0, figsize=(6, 6))
     plt.subplot(2, 2, 1)
     plt.imshow(gray_img, cmap='gray')
     plt.title("grayscale image")
@@ -248,7 +257,7 @@ if __name__ == '__main__':
     plt.imshow(secondseg_img, cmap='gray')
     plt.title(f"improved Otsu: th={second_thresh_Otsu}")
     plt.subplot(1, 2, 2)
-    plt.imshow(~original_Otsu, cmap='gray')
+    plt.imshow(original_Otsu, cmap='gray')
     plt.title(f"original Otsu: th={ret}")
     plt.show()
 
