@@ -7,18 +7,7 @@ from scipy.ndimage.filters import convolve
 # ------------------------------------------------------This is a split line----
 
 
-def histogram_plotting(gray_image):
-    # numpy的ravel函数功能是将多维数组降为一维数组
-    plt.hist(gray_image.ravel(), 256, [0, 256])
-    plt.show()
-
-
-def histogram_statistic():
-
-    pass
-
-
-def gaussian_filter(image, size=5, sigma=1.0) -> np.ndarray:
+def gaussian_filter(image, size=5, sigma=1.5) -> np.ndarray:
     """按参数生成高斯卷积核 
 
     Args:
@@ -42,7 +31,7 @@ def gaussian_filter(image, size=5, sigma=1.0) -> np.ndarray:
 # 小波变换滤波（根据直方图来搞效果可能会更好）
 
 
-def wavelet_filter(blured_image, th_wavelet=100, wavelet='haar') -> np.array:
+def wavelet_filter(blured_image, th_wavelet=100, wavelet='haar') -> np.ndarray:
     """wavelet filter
 
     Args:
@@ -68,7 +57,6 @@ def wavelet_filter(blured_image, th_wavelet=100, wavelet='haar') -> np.array:
     denoised_image = pywt.idwt2(coeff, 'bior1.3')
 
     return denoised_image
-
 
 
 def log_operation(denoised_image):
@@ -107,7 +95,18 @@ def sobel_gradient(log_image):
     return sobelx, sobely
 
 
-def magnitude(sobelx, sobely, threshold_grad = 10):
+def oblique_gradient(log_image):
+
+    ox = np.array([[0, 1, 2], [-1, 0, 1], [-2, -1, 0]])
+    oy = np.array([[-2, -1, 0], [-1, 0, 1], [0, 1, 2]])
+
+    obliquex = convolve(np.float32(log_image), ox)
+    obliquey = convolve(np.float32(log_image), oy)
+
+    return obliquex, obliquey
+
+
+def magnitude(sobelx, sobely, threshold_grad=10):
     """From the gradient x and y, calcualte the magnitude and phase.
 
     Args:
@@ -117,14 +116,14 @@ def magnitude(sobelx, sobely, threshold_grad = 10):
     Returns:
         np.array: the magitude of the gradient
         np.array: the phase of the gradient
-        
+
     """
     grad = np.sqrt(sobelx**2 + sobely**2)
     phase = cv2.phase(sobelx, sobely, 1)
     # convert to degrees
-    phase = (180/np.pi)*phase  
+    phase = (180/np.pi)*phase
     # for those magnitude of gradient lower than 10, we consider it as zero
-    x, y = np.where(grad < threshold_grad) 
+    x, y = np.where(grad < threshold_grad)
     phase[x, y] = 0
     grad[x, y] = 0
 
@@ -190,6 +189,24 @@ def non_max_supression(grad, phase):
     return newgrad
 
 
+def synthesize_grad(newgrad, log_image):
+
+    obliquex, obliquey = oblique_gradient(log_image)
+    oblique_grad = np.sqrt(obliquex**2 + obliquey**2)
+
+    h, w = newgrad.shape
+    final_grad = np.zeros((h, w))
+
+    for i in range(h):
+        for j in range(w):
+            if newgrad[i, j] >= oblique_grad[i, j]:
+                final_grad[i, j] = newgrad[i, j]
+            else:
+                final_grad[i, j] = oblique_grad[i, j]
+
+    return final_grad
+
+
 def double_thresholding(newgrad, t_low=0.075, t_high=0.175):
     """_summary_
 
@@ -203,8 +220,8 @@ def double_thresholding(newgrad, t_low=0.075, t_high=0.175):
     """
     # Automating the thresholding selecting process
     r, c = newgrad.shape
-    tl = t_low * np.amax(newgrad)
-    th = t_high * np.amax(newgrad)
+    tl = np.uint8(t_low * np.amax(newgrad))
+    th = np.uint8(t_high * np.amax(newgrad))
     print(f"The lower threshold is {tl}")
     print(f"The higher threshold is {th}")
 
@@ -239,7 +256,8 @@ def canny(image, t_low=0.15, t_high=0.45):
     sobel_x, sobel_y = sobel_gradient(img_log)
     grad, phase = magnitude(sobel_x, sobel_y)
     nms = non_max_supression(grad, phase)
-    edge = double_thresholding(nms, t_low, t_high)
+    final_grad = synthesize_grad(nms, img_log)
+    edge = double_thresholding(final_grad, t_low, t_high)
 
     return edge
 
@@ -251,9 +269,9 @@ def morphology_operation(edge_image, morph_size=5):
     return closing
 
 
-def feature_detection(closing_image):
-    feature_operator = cv2.ORB_create(nfeatures=500)
-    # feature_operator = cv2.SIFT_create(nfeatures=1500)
+def feature_detection(closing_image, nfeatures=500):
+    feature_operator = cv2.ORB_create(nfeatures=nfeatures)
+    # feature_operator = cv2.SIFT_create(nfeatures=nfeatures)
 
     keypoints, _ = feature_operator.detectAndCompute(closing_image, None)
     featuredImg = cv2.drawKeypoints(closing_image, keypoints, None)
@@ -273,7 +291,7 @@ if __name__ == "__main__":
     src = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
     print("The size of this picture is: ", src.shape)
 
-    edge = canny(src, 0.1, 0.3)
+    edge = canny(src, 0.12, 0.3)
 
     closing = morphology_operation(edge, morph_size=5)
 

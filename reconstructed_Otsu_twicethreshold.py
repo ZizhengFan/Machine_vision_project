@@ -124,12 +124,7 @@ def first_segmentation(denoised_img: np.ndarray) -> np.ndarray:
 
     h, w = denoised_img.shape
     temp_canvas = np.zeros((h, w))
-    
-    # for i in range(h):
-    #     for j in range(w):
-    #         if denoised_img[i][j] > thresh_Otsu:
-    #             denoised_img[i][j] = 0
-    
+
     for i in range(h):
         for j in range(w):
             if denoised_img[i][j] > thresh_Otsu:
@@ -137,7 +132,6 @@ def first_segmentation(denoised_img: np.ndarray) -> np.ndarray:
             else:
                 temp_canvas[i][j] = denoised_img[i][j]
 
-    # firstseg_img = denoised_img
     firstseg_img = temp_canvas
 
     return firstseg_img
@@ -146,8 +140,7 @@ def first_segmentation(denoised_img: np.ndarray) -> np.ndarray:
 def iterative_segmentation(firstseg_img: np.ndarray, weight: float = 0.225) -> np.ndarray:
     h, w = firstseg_img.shape
     firstseg_img = firstseg_img.astype(np.uint8)
-    tmax = firstseg_img.max()
-    tmin = firstseg_img.min()
+
     T0 = np.uint8(np.median(firstseg_img))
     Tk = T0 * weight
     print("the initial iterative threshold is: ", Tk)
@@ -174,8 +167,6 @@ def iterative_segmentation(firstseg_img: np.ndarray, weight: float = 0.225) -> n
         else:
             Tk = np.uint8(temp)
 
-    # print("Tk is: ", Tk)
-
     for i in range(h):
         for j in range(w):
             if firstseg_img[i][j] >= Tk or firstseg_img[i][j] == 0:
@@ -183,8 +174,8 @@ def iterative_segmentation(firstseg_img: np.ndarray, weight: float = 0.225) -> n
             elif firstseg_img[i][j] < Tk:
                 firstseg_img[i][j] = 255
 
-    print("the finally iterative threshold is: ", Tk)
     secondseg_img = firstseg_img
+    print(f"the final iterative threshold is: {Tk}")
 
     return secondseg_img, Tk
 
@@ -212,7 +203,7 @@ def feature_detection(closing_img, nfeatures=500):
 
 # ------------------------------------------------------This is a split line----
 if __name__ == '__main__':
-    path = "crack-detection-opencv-master/Input-Set/test4.png"
+    path = "crack-detection-opencv-master/Input-Set/Cracked_09.jpg"
     gray_img = image_read(path)
     log_img = log_transform(gray_img)
     blured_image = filter_noise(log_img)
@@ -225,6 +216,7 @@ if __name__ == '__main__':
 
     ret, original_Otsu = cv2.threshold(denoised_img.astype(np.uint8),
                                        0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    ret = np.uint8(ret)
     print(f"the opencv Otsu's threshold is {ret}")
 
 # ------------------------------------------------------This is a split line----
@@ -243,7 +235,22 @@ if __name__ == '__main__':
     plt.title("wavelet denoised image")
     plt.show()
 
-    plt.figure(1, figsize=(7, 5))
+    plt.figure(1, figsize=(9, 8))
+    plt.subplot(2, 2, 1)
+    plt.hist(gray_img.ravel(), 256, [0, 256])
+    plt.title("grayscale img histogram")
+    plt.subplot(2, 2, 2)
+    plt.hist(log_img.ravel(), 256, [0, 256])
+    plt.title("log img histogram")
+    plt.subplot(2, 2, 3)
+    plt.hist(denoised_img.ravel(), 256, [0, 256])
+    plt.title("wavelet denoised img histogram")
+    plt.subplot(2, 2, 4)
+    plt.hist(firstseg_img.ravel(), 256, [0, 256])
+    plt.title("first segmentation img histogram")
+    plt.show()
+
+    plt.figure(2, figsize=(7, 5))
     plt.subplot(1, 2, 1)
     plt.imshow(firstseg_img, cmap='gray')
     plt.title("image after first segmentation")
@@ -252,16 +259,16 @@ if __name__ == '__main__':
     plt.title("image after second segmentation")
     plt.show()
 
-    plt.figure(2)
+    plt.figure(3)
     plt.subplot(1, 2, 1)
     plt.imshow(secondseg_img, cmap='gray')
     plt.title(f"improved Otsu: th={second_thresh_Otsu}")
     plt.subplot(1, 2, 2)
-    plt.imshow(original_Otsu, cmap='gray')
+    plt.imshow(~original_Otsu, cmap='gray')
     plt.title(f"original Otsu: th={ret}")
     plt.show()
 
-    plt.figure(3, figsize=(10, 5))
+    plt.figure(4, figsize=(10, 5))
     plt.subplot(1, 2, 1)
     plt.imshow(featured_img, cmap='gray')
     plt.title("image and feature points")
