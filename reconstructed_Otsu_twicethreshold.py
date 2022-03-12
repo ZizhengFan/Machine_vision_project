@@ -203,7 +203,10 @@ def feature_detection(closing_img, nfeatures=500):
 
 # ------------------------------------------------------This is a split line----
 if __name__ == '__main__':
-    path = "crack-detection-opencv-master/Input-Set/Cracked_09.jpg"
+    selected_pic = "SolidRoad-1.jpg"
+    path = "crack-detection-opencv-master/Input-Set/" + selected_pic
+    path_out = "crack-detection-opencv-master/MyOtsu-Output-set/"
+    
     gray_img = image_read(path)
     log_img = log_transform(gray_img)
     blured_image = filter_noise(log_img)
@@ -220,7 +223,7 @@ if __name__ == '__main__':
     print(f"the opencv Otsu's threshold is {ret}")
 
 # ------------------------------------------------------This is a split line----
-    plt.figure(0, figsize=(6, 6))
+    plt.figure("Results", figsize=(6, 6))
     plt.subplot(2, 2, 1)
     plt.imshow(gray_img, cmap='gray')
     plt.title("grayscale image")
@@ -233,9 +236,11 @@ if __name__ == '__main__':
     plt.subplot(2, 2, 4)
     plt.imshow(denoised_img, cmap='gray')
     plt.title("wavelet denoised image")
+    
+    plt.savefig(path_out + "MyOtsu_Results_" + selected_pic)
     plt.show()
 
-    plt.figure(1, figsize=(9, 8))
+    plt.figure("Histograms", figsize=(9, 8))
     plt.subplot(2, 2, 1)
     plt.hist(gray_img.ravel(), 256, [0, 256])
     plt.title("grayscale img histogram")
@@ -248,6 +253,8 @@ if __name__ == '__main__':
     plt.subplot(2, 2, 4)
     plt.hist(firstseg_img.ravel(), 256, [0, 256])
     plt.title("first segmentation img histogram")
+    
+    plt.savefig(path_out + "MyOtsu_histogram_" + selected_pic)
     plt.show()
 
     plt.figure(2, figsize=(7, 5))
@@ -259,13 +266,15 @@ if __name__ == '__main__':
     plt.title("image after second segmentation")
     plt.show()
 
-    plt.figure(3)
+    plt.figure("Comparison")
     plt.subplot(1, 2, 1)
     plt.imshow(secondseg_img, cmap='gray')
     plt.title(f"improved Otsu: th={second_thresh_Otsu}")
     plt.subplot(1, 2, 2)
     plt.imshow(~original_Otsu, cmap='gray')
     plt.title(f"original Otsu: th={ret}")
+    
+    plt.savefig(path_out + "MyOtsu_comparison_" + selected_pic)
     plt.show()
 
     plt.figure(4, figsize=(10, 5))
@@ -275,4 +284,6 @@ if __name__ == '__main__':
     plt.subplot(1, 2, 2)
     plt.plot(kps[:, 0], kps[:, 1], 'o')
     plt.title("the key points")
+    
+    plt.savefig(path_out + "MyOtsu_feature_" + selected_pic)
     plt.show()

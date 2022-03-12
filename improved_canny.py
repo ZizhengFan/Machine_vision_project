@@ -7,7 +7,7 @@ from scipy.ndimage.filters import convolve
 # ------------------------------------------------------This is a split line----
 
 
-def gaussian_filter(image, size=5, sigma=1.5) -> np.ndarray:
+def gaussian_median_filter(image, size=5, sigma=1.5) -> np.ndarray:
     """按参数生成高斯卷积核 
 
     Args:
@@ -245,21 +245,21 @@ def double_thresholding(newgrad, t_low=0.075, t_high=0.175):
                  newgrad[i+1, j-1] > th):
                 newf[i, j] = 1
 
-    return np.clip(newf*255, 0, 255).astype(np.uint8)
+    return np.clip(newf*255, 0, 255).astype(np.uint8), tl, th
 
 
 def canny(image, t_low=0.15, t_high=0.45):
     assert(len(image.shape) == 2)
-    blured = gaussian_filter(image)
+    blured = gaussian_median_filter(image)
     denoised = wavelet_filter(blured)
     img_log = log_operation(denoised)
     sobel_x, sobel_y = sobel_gradient(img_log)
     grad, phase = magnitude(sobel_x, sobel_y)
     nms = non_max_supression(grad, phase)
     final_grad = synthesize_grad(nms, img_log)
-    edge = double_thresholding(final_grad, t_low, t_high)
+    edge, tl, th = double_thresholding(final_grad, t_low, t_high)
 
-    return edge
+    return edge, tl, th
 
 
 def morphology_operation(edge_image, morph_size=5):
@@ -286,36 +286,54 @@ def feature_detection(closing_image, nfeatures=500):
 
 # ------------------------------------------------------This is a split line----
 if __name__ == "__main__":
-
-    path = "crack-detection-opencv-master/Input-Set/RoadCrack_04.jpg"
+    seleted_pic = "RoadCrack_whiteline.png"
+    path = "crack-detection-opencv-master/Input-Set/" + seleted_pic
     src = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
     print("The size of this picture is: ", src.shape)
 
-    edge = canny(src, 0.12, 0.3)
+    edge, tl, th = canny(src, 0.11, 0.25)
 
     closing = morphology_operation(edge, morph_size=5)
 
     feature, kps = feature_detection(closing)
 
+    plt.figure("Results")
     plt.subplot(2, 2, 1)
     plt.imshow(src, cmap='gray')
     plt.title('Original Image')
-
     plt.subplot(2, 2, 2)
     plt.imshow(edge, cmap='gray')
     plt.title('Edge Image')
-
     plt.subplot(2, 2, 3)
     plt.imshow(closing, cmap='gray')
     plt.title('Closing Image')
-
     plt.subplot(2, 2, 4)
     plt.imshow(feature, cmap='gray')
     plt.title('Feature Image')
-
     plt.subplots_adjust(wspace=0.5, hspace=0.5)
+    
+    plt.savefig("crack-detection-opencv-master/MyCanny-Output-set/MyCanny_Results_" + seleted_pic)
     plt.show()
 
-    plt.figure(2)
+    plt.figure("Comparison")
+    normal_edge = cv2.Canny(gaussian_median_filter(src), tl, th)
+    plt.subplot(1, 2, 1)
+    plt.imshow(edge, cmap='gray')
+    plt.title("Improved Canny")
+    plt.subplot(1, 2, 2)
+    plt.imshow(normal_edge, cmap='gray')
+    plt.title("Normal Canny")
+    
+    plt.savefig("crack-detection-opencv-master/MyCanny-Output-set/MyCanny_Comparison_" + seleted_pic)
+    plt.show()
+    
+    plt.figure("Feature Points")
+    plt.subplot(1, 2, 1)
+    plt.imshow(feature, cmap='gray')
+    plt.title('Feature Image')
+    plt.subplot(1, 2, 2)
     plt.plot(kps[:, 0], kps[:, 1], 'o')
+    plt.title('Keypoints')
+    
+    plt.savefig("crack-detection-opencv-master/MyCanny-Output-set/MyCanny_Feature_" + seleted_pic)
     plt.show()
