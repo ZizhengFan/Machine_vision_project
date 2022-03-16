@@ -27,7 +27,7 @@ def log_transform(gray_img: np.ndarray) -> np.ndarray:
     img_log = (np.log(gray_img+1) /
                (np.log(1+np.max(gray_img)))) * 255
     log_img = np.array(img_log, dtype=np.uint8)
-
+    
     log_img = gray_img
 
     return log_img
@@ -137,7 +137,7 @@ def first_segmentation(denoised_img: np.ndarray) -> np.ndarray:
     return firstseg_img
 
 
-def iterative_segmentation(firstseg_img: np.ndarray, weight: float = 0.225) -> np.ndarray:
+def iterative_segmentation(firstseg_img: np.ndarray, weight: float = 0.5) -> np.ndarray:
     h, w = firstseg_img.shape
     firstseg_img = firstseg_img.astype(np.uint8)
 
@@ -213,7 +213,9 @@ if __name__ == '__main__':
     denoised_img = wavelet_filter(blured_image)
     # first_thresh_Otsu = normal_Otsu(denoised_img)
     firstseg_img = first_segmentation(denoised_img)
-    secondseg_img, second_thresh_Otsu = iterative_segmentation(firstseg_img)
+    # if you are dealing with asphalt road, then set weight=0.225
+    # if you are dealing with cement road, then set weight=0.5
+    secondseg_img, second_thresh_Otsu = iterative_segmentation(firstseg_img, weight=0.225)
     closing_img = morphology_operation(secondseg_img)
     featured_img, kps = feature_detection(closing_img)
 
@@ -223,34 +225,34 @@ if __name__ == '__main__':
     print(f"the opencv Otsu's threshold is {ret}")
 
 # ------------------------------------------------------This is a split line----
-    plt.figure("Results", figsize=(6, 6))
-    plt.subplot(2, 2, 1)
+    plt.figure("Results", figsize=(12, 4))
+    plt.subplot(1, 3, 1)
     plt.imshow(gray_img, cmap='gray')
     plt.title("grayscale image")
-    plt.subplot(2, 2, 2)
-    plt.imshow(log_img, cmap='gray')
-    plt.title("log transformation image")
-    plt.subplot(2, 2, 3)
+    # plt.subplot(2, 2, 2)
+    # plt.imshow(log_img, cmap='gray')
+    # plt.title("log transformation image")
+    plt.subplot(1, 3, 2)
     plt.imshow(blured_image, cmap='gray')
     plt.title("blured image")
-    plt.subplot(2, 2, 4)
+    plt.subplot(1, 3, 3)
     plt.imshow(denoised_img, cmap='gray')
     plt.title("wavelet denoised image")
     
     plt.savefig(path_out + "MyOtsu_Results_" + selected_pic)
     plt.show()
 
-    plt.figure("Histograms", figsize=(9, 8))
-    plt.subplot(2, 2, 1)
+    plt.figure("Histograms", figsize=(12, 4))
+    plt.subplot(1, 3, 1)
     plt.hist(gray_img.ravel(), 256, [0, 256])
     plt.title("grayscale img histogram")
-    plt.subplot(2, 2, 2)
-    plt.hist(log_img.ravel(), 256, [0, 256])
-    plt.title("log img histogram")
-    plt.subplot(2, 2, 3)
+    # plt.subplot(2, 2, 2)
+    # plt.hist(log_img.ravel(), 256, [0, 256])
+    # plt.title("log img histogram")
+    plt.subplot(1, 3, 2)
     plt.hist(denoised_img.ravel(), 256, [0, 256])
     plt.title("wavelet denoised img histogram")
-    plt.subplot(2, 2, 4)
+    plt.subplot(1, 3, 3)
     plt.hist(firstseg_img.ravel(), 256, [0, 256])
     plt.title("first segmentation img histogram")
     
