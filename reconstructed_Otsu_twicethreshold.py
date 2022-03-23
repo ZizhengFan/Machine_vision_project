@@ -203,19 +203,19 @@ def feature_detection(closing_img, nfeatures=500):
 
 # ------------------------------------------------------This is a split line----
 if __name__ == '__main__':
-    selected_pic = "SolidRoad-1.jpg"
+    selected_pic = "Cracked_04.jpg"
     path = "crack-detection-opencv-master/Input-Set/" + selected_pic
     path_out = "crack-detection-opencv-master/MyOtsu-Output-set/"
     
     gray_img = image_read(path)
-    log_img = log_transform(gray_img)
-    blured_image = filter_noise(log_img)
+    # log_img = log_transform(gray_img)
+    blured_image = filter_noise(gray_img)
     denoised_img = wavelet_filter(blured_image)
     # first_thresh_Otsu = normal_Otsu(denoised_img)
     firstseg_img = first_segmentation(denoised_img)
     # if you are dealing with asphalt road, then set weight=0.225
     # if you are dealing with cement road, then set weight=0.5
-    secondseg_img, second_thresh_Otsu = iterative_segmentation(firstseg_img, weight=0.225)
+    secondseg_img, second_thresh_Otsu = iterative_segmentation(firstseg_img, weight=0.5)
     closing_img = morphology_operation(secondseg_img)
     featured_img, kps = feature_detection(closing_img)
 
